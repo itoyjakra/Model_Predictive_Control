@@ -7,7 +7,7 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 10;
-double dt = 0.05;
+double dt = 0.5;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -22,7 +22,7 @@ double dt = 0.05;
 const double Lf = 2.67;
 
 // Expected peak driving speed
-double ref_v = 40;
+double ref_v = 5;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. The following keeps track
@@ -49,13 +49,19 @@ class FG_eval
     // `fg` a vector of the cost constraints
     // `vars` is a vector of variable values (state & actuators)
 
-    // Cost
     fg[0] = 0;
+    // Cost of deviation from ideal state
     for (int t = 1; t < N; t++)
     {
         fg[0] += CppAD::pow(vars[cte_start + t], 2);
         fg[0] += CppAD::pow(vars[epsi_start + t], 2);
         fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+    }
+    // Cost of too fast actuation change
+    for (int t = 1; t < N-2; t++)
+    {
+        fg[0] += CppAD::pow(vars[a_start + t] - vars[a_start + t + 1], 2);
+        fg[0] += CppAD::pow(vars[delta_start + t] - vars[delta_start + t + 1], 2);
     }
 
     // 1 is added to each index since the index 0 is reserved for the cost
