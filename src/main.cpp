@@ -12,6 +12,7 @@
 // for convenience
 using json = nlohmann::json;
 int poly_degree = 1;
+int latency_ms = 50;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -79,22 +80,36 @@ int main() {
     // The 2 signifies a websocket event
     string sdata = string(data).substr(0, length);
     cout << sdata << endl;
-    if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') {
+    if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') 
+    {
       string s = hasData(sdata);
-      if (s != "") {
+      if (s != "") 
+      {
         auto j = json::parse(s);
         string event = j[0].get<string>();
         if (event == "telemetry") {
           // j[1] is the data JSON object
           vector<double> ptsx = j[1]["ptsx"];
           vector<double> ptsy = j[1]["ptsy"];
-          Eigen::VectorXd eptsx = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsx.data(), ptsx.size());
-          Eigen::VectorXd eptsy = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsy.data(), ptsy.size());
+          for (int i=0; i<ptsx.size(); i++)
+            std::cout << "(" << ptsx[i] << ", " << ptsy[i] << ")\n";
+
+          //Eigen::VectorXd eptsx = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsx.data(), ptsx.size());
+          //Eigen::VectorXd eptsy = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsy.data(), ptsy.size());
           double px = j[1]["x"];
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
+          for (int i=0; i<ptsx.size(); i++)
+          {
+            double x = ptsx[i] - px;
+            double y = ptsy[i] - py;
+            ptsx[i] = x * cos(-psi) - y * sin(-psi);
+            ptsy[i] = x * sin(-psi) + y * cos(-psi);
+          }
+          Eigen::VectorXd eptsx = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsx.data(), ptsx.size());
+          Eigen::VectorXd eptsy = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsy.data(), ptsy.size());
           /*
           * TODO: Calculate steering angle and throttle using MPC.
           *
@@ -107,12 +122,17 @@ int main() {
           double epsi = psi - atan(coeffs[1]);
           Eigen::VectorXd state(6);
           state << px, py, psi, v, cte, epsi;
+          std::cout << "before solve: " << state[0] << ", " << state[1] << ", " << state[2] << ", " << state[3] << ", " << state[4] << ", " << state[5] << std::endl;
           auto vars = mpc.Solve(state, coeffs);
+          std::cout << "after solve: " << vars[0] << ", " << vars[1] << ", " << vars[2] << ", " << vars[3] << ", " << vars[4] << ", " << vars[5] << ", " << vars[6] << ", " << vars[7] << std::endl;
+          std::cout << "size of vars = " << vars.size() << std::endl;
 
+          // assign the predicted values to create new state
+          state << vars[0], vars[1], vars[2], vars[3], vars[4], vars[5];
+
+          // get actuator control values
           double steer_value = vars[6]/deg2rad(25);
           double throttle_value = vars[7];
-          //double steer_value = 0.0;
-          //double throttle_value = 0.0;
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -127,6 +147,11 @@ int main() {
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
+          for (int i=0; i<ptsx.size(); i++)
+          {
+              mpc_x_vals.push_back(ptsx[i]);
+              mpc_y_vals.push_back(ptsy[i]);
+          }
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
@@ -137,6 +162,13 @@ int main() {
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
 
+          for (int i=0; i<eptsx.size(); i++)
+          {
+              next_x_vals.push_back(eptsx[i]);
+              next_y_vals.push_back(eptsy[i]);
+          }
+          //next_x_vals = {10, 20, 30};
+          //next_y_vals = {0, 0, 0};
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 
@@ -152,10 +184,12 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
-          this_thread::sleep_for(chrono::milliseconds(100));
+          this_thread::sleep_for(chrono::milliseconds(latency_ms));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
-      } else {
+      } 
+      else 
+      {
         // Manual driving
         std::string msg = "42[\"manual\",{}]";
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
