@@ -12,7 +12,7 @@
 // for convenience
 using json = nlohmann::json;
 int poly_degree = 1;
-int latency_ms = 50;
+int latency_ms = 100;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -101,6 +101,9 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
+          Eigen::VectorXd eptsx = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsx.data(), ptsx.size());
+          Eigen::VectorXd eptsy = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsy.data(), ptsy.size());
+          // Translate and rotate points to the car coordinate system
           for (int i=0; i<ptsx.size(); i++)
           {
             double x = ptsx[i] - px;
@@ -108,8 +111,6 @@ int main() {
             ptsx[i] = x * cos(-psi) - y * sin(-psi);
             ptsy[i] = x * sin(-psi) + y * cos(-psi);
           }
-          Eigen::VectorXd eptsx = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsx.data(), ptsx.size());
-          Eigen::VectorXd eptsy = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ptsy.data(), ptsy.size());
           /*
           * TODO: Calculate steering angle and throttle using MPC.
           *
@@ -122,22 +123,23 @@ int main() {
           double epsi = psi - atan(coeffs[1]);
           Eigen::VectorXd state(6);
           state << px, py, psi, v, cte, epsi;
+          std::cout << "x, y, psi, v, cte, epsi: " << px << ", " << py << ", " << psi << ", " << v << ", " << cte << ", " << epsi << std::endl;
           std::cout << "before solve: " << state[0] << ", " << state[1] << ", " << state[2] << ", " << state[3] << ", " << state[4] << ", " << state[5] << std::endl;
           auto vars = mpc.Solve(state, coeffs);
           std::cout << "after solve: " << vars[0] << ", " << vars[1] << ", " << vars[2] << ", " << vars[3] << ", " << vars[4] << ", " << vars[5] << ", " << vars[6] << ", " << vars[7] << std::endl;
-          std::cout << "size of vars = " << vars.size() << std::endl;
 
           // assign the predicted values to create new state
           state << vars[0], vars[1], vars[2], vars[3], vars[4], vars[5];
 
           // get actuator control values
-          double steer_value = vars[6]/deg2rad(25);
+          double max_angle = 25;
+          double steer_value = vars[6]/deg2rad(max_angle);
           double throttle_value = vars[7];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value;
+          msgJson["steering_angle"] = -steer_value;
           msgJson["throttle"] = throttle_value;
 
           //Display the MPC predicted trajectory 

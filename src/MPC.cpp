@@ -7,7 +7,7 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 10;
-double dt = 0.5;
+double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -22,7 +22,7 @@ double dt = 0.5;
 const double Lf = 2.67;
 
 // Expected peak driving speed
-double ref_v = 5;
+double ref_v = 10;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. The following keeps track
@@ -103,7 +103,8 @@ class FG_eval
 
       // error measurement
       fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
-      fg[1 + psi_start + t] = epsi1 - ((psi0 - psi_des0) + v0 * delta0 / Lf * dt);
+      fg[1 + epsi_start + t] = epsi1 - ((psi0 - psi_des0) + v0 * delta0 / Lf * dt);
+
     }
   }
 };
