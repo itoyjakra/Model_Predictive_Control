@@ -12,7 +12,7 @@
 // for convenience
 using json = nlohmann::json;
 int poly_degree = 3;
-int latency_ms = 40;
+int latency_ms = 100;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -128,7 +128,7 @@ int main() {
 
           // get actuator control values
           double max_angle = 25;
-          double steer_value = vars[1]/deg2rad(max_angle);
+          double steer_value = vars[1]/deg2rad(max_angle) / 2.67;
           double throttle_value = vars[2];
 
           json msgJson;
@@ -154,7 +154,7 @@ int main() {
           }
           // Translate and rotate points to the car coordinate system
           //for (int i=0; i<mpc_x_vals.size(); i++)
-          for (int i=0; i<n-1; i++)
+          for (int i=0; i<n; i++)
           {
             double x = mpc_x_vals[i] - px;
             double y = mpc_y_vals[i] - py;
