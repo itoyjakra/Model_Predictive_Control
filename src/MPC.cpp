@@ -7,7 +7,7 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 10;
-double dt = 0.1;
+double dt = 0.2;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -22,7 +22,7 @@ double dt = 0.1;
 const double Lf = 2.67;
 
 // Expected peak driving speed
-double ref_v = 50;
+double ref_v = 150;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. The following keeps track
@@ -55,18 +55,22 @@ class FG_eval
     {
         fg[0] += 1000 * CppAD::pow(vars[cte_start + t], 2);
         fg[0] += 1000 * CppAD::pow(vars[epsi_start + t], 2);
-        fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+        fg[0] += 0.7 * CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
     // Minimize the use of actuators.
-    for (int t = 0; t < N - 1; t++) {
-      fg[0] += 5 * CppAD::pow(vars[delta_start + t], 2);
-      fg[0] += 5 * CppAD::pow(vars[a_start + t], 2);
+    for (int t = 0; t < N - 1; t++) 
+    {
+      fg[0] += 0 * CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += 0 * CppAD::pow(vars[a_start + t], 2);
     }
     // Cost of too fast actuation change
     for (int t = 0; t < N-2; t++)
     {
         fg[0] += CppAD::pow(vars[a_start + t] - vars[a_start + t + 1], 2);
-        fg[0] += 100 * CppAD::pow(vars[delta_start + t] - vars[delta_start + t + 1], 2);
+        if (vars[v_start + t] > 0)
+            fg[0] += 1000 * CppAD::pow(vars[delta_start + t] - vars[delta_start + t + 1], 2) / vars[v_start + t];
+        else
+            fg[0] += 100 * CppAD::pow(vars[delta_start + t] - vars[delta_start + t + 1], 2);
     }
 
     // 1 is added to each index since the index 0 is reserved for the cost
@@ -238,13 +242,17 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs)
   std::cout << "Cost " << cost << std::endl;
 
   vector<double> result;
-  result.push_back(N);
+  result.push_back(N-1);
   result.push_back(solution.x[delta_start]);
   result.push_back(solution.x[a_start]);
-  for (int i=0; i<N; i++)
+  for (int i=0; i<N-1; i++)
       result.push_back(solution.x[x_start + 1 + i]);
-  for (int i=0; i<N; i++)
+  for (int i=0; i<N-1; i++)
       result.push_back(solution.x[y_start + 1 + i]);
+  for (int i=0; i<N-1; i++)
+  {
+      std::cout << solution.x[x_start + 1 + i] << " :: " << solution.x[y_start + 1 + i] << std::endl;;
+  }
 
   return result;
 }
