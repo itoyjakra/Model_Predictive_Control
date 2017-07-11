@@ -79,7 +79,7 @@ int main() {
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     string sdata = string(data).substr(0, length);
-    cout << sdata << endl;
+    //cout << sdata << endl;
     if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') 
     {
       string s = hasData(sdata);
@@ -91,8 +91,10 @@ int main() {
           // j[1] is the data JSON object
           vector<double> ptsx = j[1]["ptsx"];
           vector<double> ptsy = j[1]["ptsy"];
+          /*
           for (int i=0; i<ptsx.size(); i++)
             std::cout << "(" << ptsx[i] << ", " << ptsy[i] << ")\n";
+          */
 
           double px = j[1]["x"];
           double py = j[1]["y"];
@@ -120,7 +122,7 @@ int main() {
           double epsi = psi - atan(coeffs[1]);
           Eigen::VectorXd state(6);
           state << px, py, psi, v, cte, epsi;
-          std::cout << "x, y, psi, v, cte, epsi: " << px << ", " << py << ", " << psi << ", " << v << ", " << cte << ", " << epsi << std::endl;
+          //std::cout << "x, y, psi, v, cte, epsi: " << px << ", " << py << ", " << psi << ", " << v << ", " << cte << ", " << epsi << std::endl;
           auto vars = mpc.Solve(state, coeffs);
 
           // assign the predicted values to create new state
@@ -146,7 +148,7 @@ int main() {
 
           // get predicted path coordinates
           int n = vars[0];
-          std::cout << "!!!!!!!! " << n << " " << vars.size() << std::endl;
+          //std::cout << "!!!!!!!! " << n << " " << vars.size() << std::endl;
           for (int i=0; i< n; i++)
           {
               mpc_x_vals.push_back(vars[i + 3]);

@@ -238,8 +238,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs)
   ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
 
   // Cost
-  auto cost = solution.obj_value;
-  std::cout << "Cost " << cost << std::endl;
+  //auto cost = solution.obj_value;
+  //std::cout << "Cost " << cost << std::endl;
 
   vector<double> result;
   result.push_back(N-1);
@@ -249,10 +249,12 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs)
       result.push_back(solution.x[x_start + 1 + i]);
   for (int i=0; i<N-1; i++)
       result.push_back(solution.x[y_start + 1 + i]);
+  /*
   for (int i=0; i<N-1; i++)
   {
       std::cout << solution.x[x_start + 1 + i] << " :: " << solution.x[y_start + 1 + i] << std::endl;;
   }
+  */
 
   return result;
 }
