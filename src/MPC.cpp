@@ -7,7 +7,8 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 10;
-double dt = 0.2;
+double latency = 100;
+double dt = latency * 2.0 / 1000;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -22,7 +23,7 @@ double dt = 0.2;
 const double Lf = 2.67;
 
 // Expected peak driving speed
-double ref_v = 150;
+double ref_v = 120;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. The following keeps track
@@ -55,7 +56,7 @@ class FG_eval
     {
         fg[0] += 1000 * CppAD::pow(vars[cte_start + t], 2);
         fg[0] += 1000 * CppAD::pow(vars[epsi_start + t], 2);
-        fg[0] += 0.7 * CppAD::pow(vars[v_start + t] - ref_v, 2);
+        fg[0] += 0.2 * CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
     // Minimize the use of actuators.
     for (int t = 0; t < N - 1; t++) 
